@@ -127,16 +127,13 @@ def main_logic(index: int = 0) -> None:
                 json.dump({"tweet": translated_tweets[cont],"original_tweet": tweets[cont]}, f_out, ensure_ascii=False)
                 f_out.write("\n")
 
-
-"""Prueba para verificar que el proceso de traducción funciona correctamente de un batch solo
-tweets=obtain_tweets(0, batch_size)
-translated_tweets=tweets_translation(tweets, prompt, model, max_tokens)
-with open(file_output, "a", encoding="utf-8") as f_out:
-            for cont in range(len(translated_tweets)):
-                json.dump({"tweet": translated_tweets[cont],"original_tweet": tweets[cont]}, f_out, ensure_ascii=False)
-                f_out.write("\n")
-for original, traducido in zip(tweets, translated_tweets):
-    print(f"Original: {original}\nTraducido: {traducido}\n")
-"""
-
-main_logic(1200)
+if __name__ == "__main__":
+    input_index = input("Ingrese el índice de inicio (0 para comenzar desde el principio): ")
+    try:
+        index = int(input_index)
+        if index < 0:
+            raise ValueError
+    except ValueError:
+        print("Índice inválido. Se usará 0 por defecto.")
+        index = 0
+    main_logic(index)

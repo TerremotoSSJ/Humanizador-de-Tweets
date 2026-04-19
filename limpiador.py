@@ -1,20 +1,23 @@
 import json
 import re
 from pathlib import Path
+import random
 
-
-INPUT_FILE = Path("tweets_futbol_para_chatgpt_palabra_completa.jsonl")
-OUTPUT_FILE = Path("tweets_futbol_sin_enlaces.jsonl")
+INPUT_FILE = Path("tweets_futbol_completa.jsonl")
+OUTPUT_FILE = Path("tweets_futbol_limpio.jsonl")
 
 URL_PATTERN = re.compile(r"(?i)\b(?:https?://|www\.)\S+")
-
+MENTION_PATTERN = re.compile(r"@\w+")
 
 def quitar_enlaces(texto: str) -> str:
 	"""Quita solamente enlaces de un texto y deja el resto igual."""
 	return URL_PATTERN.sub("", texto)
 
+def quitar_menciones(texto: str) -> str:
+	"""Quita solamente menciones de un texto y deja el resto igual."""
+	return MENTION_PATTERN.sub("", texto)
 
-def main() -> None:
+def main(enlaces: bool, menciones: bool, probabilidad_menciones: float) -> None:
 	if not INPUT_FILE.exists():
 		print(f"❌ No existe el archivo: {INPUT_FILE}")
 		return
@@ -32,7 +35,10 @@ def main() -> None:
 
 			tweet = row.get("tweet")
 			if isinstance(tweet, str):
-				row["tweet"] = quitar_enlaces(tweet)
+				if enlaces:
+					row["tweet"] = quitar_enlaces(tweet)
+				if menciones and random.random() < probabilidad_menciones:  
+					row["tweet"] = quitar_menciones(row["tweet"])
 
 			json.dump(row, fout, ensure_ascii=False)
 			fout.write("\n")
@@ -41,4 +47,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-	main()
+	enlaces=input("¿Quieres quitar enlaces de los tweets? (s/n): ").strip().lower() == "s"
+	menciones=input("¿Quieres quitar menciones de los tweets? (s/n): ").strip().lower() == "s"
+	if menciones:
+		probabilidad_menciones = float(input("¿Con qué probabilidad quieres quitar menciones? (0-1): ").strip())
+	else:
+		probabilidad_menciones = 0.0
+	main(enlaces, menciones, probabilidad_menciones)

@@ -24,12 +24,13 @@ training_args = SFTConfig(
     bf16=True, 
     fp16=False,
     logging_steps=10, 
-    save_steps=50,
+    save_steps=50, 
     report_to="none",
     num_train_epochs=3,
     learning_rate=2e-4,
     weight_decay=0.01,
-    max_length=512
+    max_length=512,
+    save_total_limit=2
 )
 model=AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-1.5B", quantization_config=quant_config, device_map="auto")
 

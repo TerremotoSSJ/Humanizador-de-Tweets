@@ -5,8 +5,8 @@ from pathlib import Path
 from tqdm import tqdm
 
 
-INPUT_FILE = Path("tweets_futbol_para_chatgpt.jsonl")
-OUTPUT_FILE = Path("tweets_futbol_para_chatgpt_palabra_completa.jsonl")
+INPUT_FILE = Path("tweets_futbol.jsonl")
+OUTPUT_FILE = Path("tweets_futbol_completa.jsonl")
 
 
 def build_full_match_pattern(trigger: str) -> re.Pattern[str]:

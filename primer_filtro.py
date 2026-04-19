@@ -2,8 +2,6 @@
 import os
 import sys
 
-from limpiador import OUTPUT_FILE
-
 # Evita un crash al finalizar Python por hilos de descarga (hf_transfer).
 os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "0")
 
