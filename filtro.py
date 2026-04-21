@@ -1,5 +1,6 @@
 # paso_1_filtrar_tweets.py
 import os
+import random
 import sys
 
 # Evita un crash al finalizar Python por hilos de descarga (hf_transfer).
@@ -11,6 +12,11 @@ import json
 from itertools import islice
 from tqdm import tqdm
 from pathlib import Path
+
+#Parametros
+tweets_maximos=10000 # Número máximo de tweets de fútbol a guardar (ajustable)
+tweets_revisar=1000000 # Número máximo de tweets a revisar para encontrar los de fútbol (ajustable, puede ser mayor que tweets_maximos para más variedad)
+porcentaje_con_menciones=0.3 # Porcentaje de tweets de fútbol que pueden contener menciones (ajustable)
 
 
 
@@ -286,8 +292,6 @@ terminos_evadir = [
     "estat espanyol", "estado español"
 ]
 
-terminos_evadir = [t.lower() for t in terminos_evadir]
-
 terminos_futbol_seguros = [
     # ============================================
     # EQUIPOS ESPAÑOLES (nombres completos)
@@ -395,28 +399,37 @@ terminos_futbol_seguros = [
 
 ]
 
-terminos_futbol_seguros = [t.lower() for t in terminos_futbol_seguros]
+
+# Creamos regex para búsqueda rápida "\b" para asegurar palabras completas
+regex_futbol = re.compile(r"\b(" + "|".join(map(re.escape, terminos_futbol_seguros)) + r")\b", re.IGNORECASE)
+regex_evadir = re.compile(r"\b(" + "|".join(map(re.escape, terminos_evadir)) + r")\b", re.IGNORECASE)
 
 
-def palabra_disparadora(texto, palabras_futbol=terminos_futbol_seguros):
+
+def es_tweet_de_futbol(texto) -> tuple[bool, str]:
+    # Devuelve True y la palabra disparadora si es un tweet de fútbol, False y None si no lo es.
     texto_limpio = texto.lower()
-    for p in palabras_futbol:
-        if p in texto_limpio:
-            return p
-    return None
+    if regex_evadir.search(texto_limpio):
+        return False,None
+    termino=regex_futbol.search(texto_limpio)
+    if termino:
+        return True,termino.group(0)
+    return False,None
 
 def limpiar_tweet(texto):
-    """Limpia menciones, URLs, hashtags"""
-    texto = re.sub(r'@\w+', '', texto)
+    """Limpia URLs"""
     texto = re.sub(r'http\S+', '', texto)
-    texto = re.sub(r'#', '', texto)
-    texto = re.sub(r'\s+', ' ', texto)
     return texto.strip()
+
+def tiene_menciones(texto):
+    """Devuelve True si el texto tiene menciones (@usuario)"""
+    return re.search(r'@\w+', texto) is not None
 
 def primer_filtro():
     print("Filtrando tweets")
-    tweets_futbol = []
-    max_tweets_a_revisar = 30000
+    tweets_futbol_sin_menciones = []
+    tweets_futbol_con_menciones = []
+    max_tweets_a_revisar = tweets_revisar
     for tweet in tqdm(
         islice(dataset, max_tweets_a_revisar),
         total=max_tweets_a_revisar,
@@ -425,33 +438,37 @@ def primer_filtro():
     ):
         texto = tweet['text']
 
-        # Si aparece un término negativo, se rechaza directamente.
-        palabra_negativa = palabra_disparadora(texto, terminos_evadir)
-        if palabra_negativa:
+        is_futbol, palabra_match = es_tweet_de_futbol(texto)
+        if not is_futbol:
             continue
-
-        # Solo si no hubo negativos, se valida por terminos seguros de fútbol.
-        palabra_match = palabra_disparadora(texto, terminos_futbol_seguros)
-        if palabra_match:
-            tweets_futbol.append({
-                "tweet_original": texto,
-                "tweet_limpio": limpiar_tweet(texto),
-                "palabra_disparadora": palabra_match,
+        if tiene_menciones(texto):
+            tweets_futbol_con_menciones.append({
+                "tweet_original": limpiar_tweet(texto),
+                "palabra_disparadora": palabra_match
+            })
+        else:
+            tweets_futbol_sin_menciones.append({
+                "tweet_original": limpiar_tweet(texto),
+                "palabra_disparadora": palabra_match
             })
 
-        if len(tweets_futbol) >= 50000:  # empieza con 10k
-            break
-
-    print(f"✅ {len(tweets_futbol)} tweets de fútbol")
+    print(f"✅ {len(tweets_futbol_sin_menciones)} tweets de fútbol sin menciones")
+    print(f"✅ {len(tweets_futbol_con_menciones)} tweets de fútbol con menciones")
 
     # Guardamos en un archivo JSONL
     with open("tweets_futbol.jsonl", "w", encoding="utf-8") as f:
-        for t in tweets_futbol:
-            json.dump({
-                "palabra_disparadora": t['palabra_disparadora'],
-                "tweet": t['tweet_original'],
-            }, f, ensure_ascii=False)
+        
+        tweets_con_menciones_a_guardar = min(int(tweets_maximos * porcentaje_con_menciones), len(tweets_futbol_con_menciones))
+        tweets_sin_menciones_a_guardar = min(tweets_maximos - tweets_con_menciones_a_guardar, len(tweets_futbol_sin_menciones))
+        tweets_con_menciones_seleccionados = random.sample(tweets_futbol_con_menciones, tweets_con_menciones_a_guardar)
+        tweets_sin_menciones_seleccionados = random.sample(tweets_futbol_sin_menciones, tweets_sin_menciones_a_guardar)
+        tweets_finales=tweets_con_menciones_seleccionados + tweets_sin_menciones_seleccionados
+        random.shuffle(tweets_finales)
+        for tweet in tweets_finales:
+            json.dump(tweet, f, ensure_ascii=False)
             f.write("\n")
+
+
 
     print("Guardados en futbol_tweets.jsonl")
 
