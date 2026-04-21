@@ -400,21 +400,25 @@ terminos_futbol_seguros = [
 ]
 
 
-# Creamos regex para búsqueda rápida "\b" para asegurar palabras completas
-regex_futbol = re.compile(r"\b(" + "|".join(map(re.escape, terminos_futbol_seguros)) + r")\b", re.IGNORECASE)
-regex_evadir = re.compile(r"\b(" + "|".join(map(re.escape, terminos_evadir)) + r")\b", re.IGNORECASE)
+# Usamos sets para busquedas rapidas
+futbol_set=set(terminos_futbol_seguros)
+evadir_set=set(terminos_evadir)
 
 
 
 def es_tweet_de_futbol(texto) -> tuple[bool, str]:
     # Devuelve True y la palabra disparadora si es un tweet de fútbol, False y None si no lo es.
     texto_limpio = texto.lower()
-    if regex_evadir.search(texto_limpio):
-        return False,None
-    termino=regex_futbol.search(texto_limpio)
-    if termino:
-        return True,termino.group(0)
-    return False,None
+
+    for evadir in evadir_set:
+        if evadir in texto_limpio:
+            return False, None
+
+    for futbol in futbol_set:
+        if futbol in texto_limpio:
+            return True, futbol
+
+    return False, None
 
 def limpiar_tweet(texto):
     """Limpia URLs"""
