@@ -15,9 +15,9 @@ from pathlib import Path
 
 #Parametros
 tweets_maximos=10000 # Número máximo de tweets de fútbol a guardar (ajustable)
-tweets_revisar=1000000 # Número máximo de tweets a revisar para encontrar los de fútbol (ajustable, puede ser mayor que tweets_maximos para más variedad)
+tweets_revisar=2000000 # Número máximo de tweets a revisar para encontrar los de fútbol (ajustable, puede ser mayor que tweets_maximos para más variedad)
 porcentaje_con_menciones=0.3 # Porcentaje de tweets de fútbol que pueden contener menciones (ajustable)
-
+archivo="tweets_futbol.jsonl" # Archivo de salida para los tweets filtrados
 
 
 outputFile=Path("tweets_futbol.jsonl")
@@ -429,58 +429,56 @@ def tiene_menciones(texto):
     """Devuelve True si el texto tiene menciones (@usuario)"""
     return re.search(r'@\w+', texto) is not None
 
-def primer_filtro():
+def primer_filtro(tweets_maximos: int, archivo: str):
     print("Filtrando tweets")
-    tweets_futbol_sin_menciones = []
-    tweets_futbol_con_menciones = []
-    max_tweets_a_revisar = tweets_revisar
-    for tweet in tqdm(
-        islice(dataset, max_tweets_a_revisar),
-        total=max_tweets_a_revisar,
-        desc="Revisando tweets",
-        unit="tweet",
-    ):
-        texto = tweet['text']
 
-        is_futbol, palabra_match = es_tweet_de_futbol(texto)
-        if not is_futbol:
-            continue
-        if tiene_menciones(texto):
-            tweets_futbol_con_menciones.append({
+    contador_sin = 0
+    contador_con = 0
+
+    max_con = int(tweets_maximos * porcentaje_con_menciones)
+    max_sin = tweets_maximos - max_con
+
+    with open(archivo, "a", encoding="utf-8")  as file:
+        for tweet in tqdm(islice(dataset, tweets_revisar),
+                          total=tweets_revisar,
+                          desc="Revisando tweets"):
+
+            texto = tweet["text"].lower()
+
+            is_futbol, palabra = es_tweet_de_futbol(texto)
+            if not is_futbol:
+                continue
+
+            item = {
                 "tweet_original": limpiar_tweet(texto),
-                "palabra_disparadora": palabra_match
-            })
-        else:
-            tweets_futbol_sin_menciones.append({
-                "tweet_original": limpiar_tweet(texto),
-                "palabra_disparadora": palabra_match
-            })
+                "palabra_disparadora": palabra
+            }
 
-    print(f"✅ {len(tweets_futbol_sin_menciones)} tweets de fútbol sin menciones")
-    print(f"✅ {len(tweets_futbol_con_menciones)} tweets de fútbol con menciones")
+            if tiene_menciones(texto):
+                if contador_con < max_con:
+                    json.dump(item, file, ensure_ascii=False)
+                    file.write("\n")
+                    contador_con += 1
+            else:
+                if contador_sin < max_sin:
+                    json.dump(item, file, ensure_ascii=False)
+                    file.write("\n")
+                    contador_sin += 1
 
-    # Guardamos en un archivo JSONL
-    with open("tweets_futbol.jsonl", "w", encoding="utf-8") as f:
-        
-        tweets_con_menciones_a_guardar = min(int(tweets_maximos * porcentaje_con_menciones), len(tweets_futbol_con_menciones))
-        tweets_sin_menciones_a_guardar = min(tweets_maximos - tweets_con_menciones_a_guardar, len(tweets_futbol_sin_menciones))
-        tweets_con_menciones_seleccionados = random.sample(tweets_futbol_con_menciones, tweets_con_menciones_a_guardar)
-        tweets_sin_menciones_seleccionados = random.sample(tweets_futbol_sin_menciones, tweets_sin_menciones_a_guardar)
-        tweets_finales=tweets_con_menciones_seleccionados + tweets_sin_menciones_seleccionados
-        random.shuffle(tweets_finales)
-        for tweet in tweets_finales:
-            json.dump(tweet, f, ensure_ascii=False)
-            f.write("\n")
+            if contador_con >= max_con and contador_sin >= max_sin:
+                break
+    
+    print(f"✅ {contador_sin} tweets de fútbol sin menciones")
+    print(f"✅ {contador_con} tweets de fútbol con menciones")
 
-
-
-    print("Guardados en futbol_tweets.jsonl")
 
 
 
 
 if __name__ == "__main__":
-    primer_filtro()
+    if os.path.exists(archivo):
+        os.remove(archivo)
+    primer_filtro(tweets_maximos, archivo)
     sys.stdout.flush()
     sys.stderr.flush()
     os._exit(0)
