@@ -67,10 +67,10 @@ def main():
     model, tokenizer = load_model_and_tokenizer()
 
     test_tweets = [
-        "De Bruyne es muy malo jugando",
-        "Partidazo del Osasuna hoy, el portero ha sido el mejor del equipo",
-        "No hay defensa peor que el de hoy, no paran de meter goles",
-        "El árbitro es un ladrón, siempre nos perjudica",
+        "No me gusto para nada la respuesta de mi amigo, es un maleducado",
+        "Ayer fui al cine y la película estuvo increíble, me encantó cada minuto",
+        "La verdad es que no tengo ni la más mínima idea de cómo resolver este problema, estoy perdido",
+        "No voy a ir a la fiesta, no me apetece nada y además estoy cansado",
     ]
 
     print("=== TEST RAPIDO MODELO FINE-TUNED ===")

@@ -2,14 +2,15 @@ import os
 from openai import OpenAI
 import json
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-model="gpt-5-nano"
+# Parametros
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY")) 
+model="gpt-5-nano" 
 batch_size=30
-max_tokens=2048
-max_retries=4
-file="tweets_futbol_sin_enlaces.jsonl"
-file_output="tweets_futbol_traducidos.jsonl"
-prompt="Rescribe el siguiente tweet de futbol en un estilo formal, breve y educado. Devuelve ÚNICAMENTE un array JSON con los tweets reescritos, en el mismo orden y cantidad:\n"
+max_tokens=2048 # Maximo de tokens por lote
+max_retries=4 # Número máximo de reintentos para obtener una salida válida
+file="tweets_filtrados.jsonl" # Archivo de entrada con los tweets a traducir
+file_output="tweets_traducidos.jsonl"
+prompt="Rescribe el siguiente tweet en un estilo formal, breve y educado. Devuelve ÚNICAMENTE un array JSON con los tweets reescritos, en el mismo orden y cantidad:\n"
 
 def tweet_amount(file: str) -> int:
     """
