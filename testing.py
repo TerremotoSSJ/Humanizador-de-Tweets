@@ -45,11 +45,11 @@ def generate(model, tokenizer, tweet: str, max_new_tokens: int = 80) -> str:
 
     with torch.no_grad():
         outputs = model.generate(
-            **inputs,
+            **inputs, 
             max_new_tokens=max_new_tokens,
             do_sample=True,
-            temperature=0.7,
-            top_p=0.9,
+            temperature=0.7, #
+            top_p=0.9, 
             repetition_penalty=1.1,
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id,

@@ -1,6 +1,5 @@
 # paso_1_filtrar_tweets.py
 import os
-import random
 import sys
 
 # Evita un crash al finalizar Python por hilos de descarga (hf_transfer).
@@ -9,7 +8,6 @@ os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "0")
 from datasets import load_dataset
 import re
 import json
-from itertools import islice
 from tqdm import tqdm
 from pathlib import Path
 
@@ -18,10 +16,9 @@ tweets_maximos=10000 # Número máximo de tweets a guardar (ajustable)
 porcentaje_con_menciones=0.3 # Porcentaje de tweets que pueden contener menciones (ajustable)
 archivo="tweets_filtrados.jsonl" # Archivo de salida para los tweets filtrados
 fila_empezar=3500 # Fila desde la cual empezar a procesar (ajustable)
+mencion_regex = re.compile(r'@\w+')
+url_regex = re.compile(r'http\S+')
 
-
-
-outputFile=Path("tweets_filtrados.jsonl")
 # 1. Cargar dataset (empieza con una parte)
 print("Cargando dataset")
 
@@ -29,36 +26,41 @@ print("Cargando dataset")
 
 def tiene_menciones(texto):
     """Devuelve True si el texto tiene menciones (@usuario)"""
-    return re.search(r'@\w+', texto) is not None
+    return mencion_regex.search(texto) is not None
 
 def limpiar_tweet(texto):
     """Limpia URLs"""
-    texto = re.sub(r'http\S+', '', texto)
+    texto = url_regex.sub('', texto)
     return texto.strip()
 
 def primer_filtro(max_tweets, archivo_salida):
     dataset = load_dataset("pysentimiento/spanish-tweets", split="train", streaming=True)
+    if fila_empezar > 0:
+        dataset=dataset.skip(fila_empezar) # Saltamos las primeras filas ya procesadas
     max_tweets_con_menciones = int(max_tweets * porcentaje_con_menciones)
     max_tweets_sin_menciones = max_tweets - max_tweets_con_menciones
     tweets_con_menciones = 0
     tweets_sin_menciones = 0
+
     with open(archivo_salida, 'w', encoding='utf-8') as f_out:
-        for i, tweet in enumerate(tqdm(dataset, desc="Filtrando tweets")):
-            if i < fila_empezar:
-                continue
+        for tweet in tqdm(dataset, desc="Filtrando tweets"):
             texto = limpiar_tweet(tweet['text'])
-            if tiene_menciones(texto):
+            es_mencion=tiene_menciones(texto)
+            escribir=False
+            if es_mencion:
                 if tweets_con_menciones < max_tweets_con_menciones:
-                    json.dump({"tweet": texto}, f_out, ensure_ascii=False)
-                    f_out.write('\n')
+                    escribir=True
                     tweets_con_menciones += 1
             else:
                 if tweets_sin_menciones < max_tweets_sin_menciones:
-                    json.dump({"tweet": texto}, f_out, ensure_ascii=False)
-                    f_out.write('\n')
+                    escribir=True
                     tweets_sin_menciones += 1
+            if escribir:
+                json.dump({"tweet": texto}, f_out, ensure_ascii=False)
+                f_out.write('\n')
             if tweets_con_menciones >= max_tweets_con_menciones and tweets_sin_menciones >= max_tweets_sin_menciones:
                 break
+    print(f"Filtrado completo. Tweets con menciones: {tweets_con_menciones}, sin menciones: {tweets_sin_menciones}. Total: {tweets_con_menciones + tweets_sin_menciones}")
 
 
 
