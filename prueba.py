@@ -136,5 +136,5 @@ if __name__ == "__main__":
             raise ValueError
     except ValueError:
         print("Índice inválido. Se usará 0 por defecto.")
-        index = 0
+        index = 4171
     main_logic(index)

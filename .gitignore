@@ -9,6 +9,9 @@ __pycache__/
 #Jsonl files
 *.jsonl
 
+#Text files
+*.txt
+
 #Carpetas
 */
 
