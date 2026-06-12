@@ -8,6 +8,7 @@ __pycache__/
 
 #Jsonl files
 *.jsonl
+*.json
 
 #Text files
 *.txt
